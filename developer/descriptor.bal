@@ -1,35 +1,38 @@
 import wso2dev;
+import ballerina/io;
 
-@wso2dev:Docker{
-    ENV_ADMIN_PASSWORD: "admin",
-    ENV_ADMIN_USERNAME: "admin"
+public wso2dev:Application ballerinaApp = {
+    name: "MyBallerinaApp",
+    deployment: {
+        namespace: "default",
+        labels: { "language": "Ballerina", "app": "ballerinaApp" },
+        replicas: 1,
+        imagePullPolicy: "IfNotPresent",
+        image: "myapp:1.0",
+        env: { "RABBIT_MQ_URL": "https://localhost:5672" }
+    },
+    services: { "MyBallerinaAppSvc": {
+        serviceType: "NodePort",
+        ports: [{
+            name: "http",
+            port: 9090,
+            targetPort: 9090,
+            nodePort: 32100,
+            protocol: "TCP"
+        }] }
+    },
+    ingresses: {
+        "MyAppIngress": {
+            annotations: { "nginx.ingress.kubernetes.io/ssl-passthrough": "true",
+                "kubernetes.io/ingress.class": "nginx"
+            },
+            rules: {
+                "sample.com": { host: "sample.com", serviceName: "MyBallerinaAppSvc", servicePort: 9090, path: "/" }
+            }
+        }
+    }
+};
+
+public function main(string... args) {
+    io:println(check wso2dev:deploy(ballerinaApp));
 }
-wso2dev:DockerImage rabbitmqImage = {
-    name: "dev.io/rabbitmq:1.0.0",
-    ports: [5672, 5671],
-    envVariables: [{ name: "ENV_ADMIN_PASSWORD", name:"ENV_ADMIN_USERNAME" }]
-};
-
-//@wso2dev:Gen {}
-wso2dev:EgressAPI salesForeceAPI = {
-    name: "sales-force",
-    protocol: "https",
-    port: 443,
-    host: "salesforce.com"
-};
-
-//@wso2dev:Gen {}
-wso2dev:EgressAPI quickBookAPI = {
-    name: "quick-books",
-    protocol: "https",
-    port: 443,
-    host: "quickbooks.com"
-};
-
-//@wso2dev:Gen {}
-wso2dev:EnvVarName envRabbitmqUrl = { name: "ENV_RABBITMQ_URL" };
-
-//@wso2dev:Gen {}
-wso2dev:EnvVarName quickBooksURL = { name: "ENV_QUICKBOOKS_URL" };
-
-

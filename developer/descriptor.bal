@@ -1,38 +1,76 @@
 import wso2dev;
 import ballerina/io;
+import ballerina/config;
+import ballerina/runtime;
 
-public wso2dev:Application ballerinaApp = {
-    name: "MyBallerinaApp",
+//@composite:Docker {}
+
+@final public string mysqlHostname = "mysql-jdbc.com";
+@final public int springBootAppPort = 8080;
+
+public wso2dev:Application mysqlApp = {
+    name: "mysql",
     deployment: {
         namespace: "default",
-        labels: { "language": "Ballerina", "app": "ballerinaApp" },
+        labels: { "app": "mysql" },
         replicas: 1,
         imagePullPolicy: "IfNotPresent",
-        image: "myapp:1.0",
-        env: { "RABBIT_MQ_URL": "https://localhost:5672" }
+        source: {
+            dockerImage: "mysql:5.7.0"
+        },
+        containerPorts: [{ port: 3306, protocol: "TCP" }],
+        env: { "MYSQL_ROOT_PASSWORD": config:getAsString("mysql.password") }
     },
-    services: { "MyBallerinaAppSvc": {
+    services: { "mysql-svc": {
+        name: mysqlHostname,
+        serviceType: "ClusterIP",
+        ports: [{
+            name: "jdbc-port",
+            port: 3306,
+            targetPort: 3306,
+            protocol: "TCP"
+        }] }
+    }
+};
+
+
+public wso2dev:Application springBootApp = {
+    name: "SprintBootApp",
+    deployment: {
+        namespace: "default",
+        labels: { "language": "Java", "app": "spring-boot-app" },
+        replicas: 1,
+        imagePullPolicy: "IfNotPresent",
+        source: {
+            dockerImage: "my-springboot-app:v1.0"
+        },
+        containerPorts: [{ port: springBootAppPort, protocol: "TCP" }],
+        env: { "MYSQL_HOST": mysqlHostname }
+    },
+    services: { "MySpringAppSvc": {
         serviceType: "NodePort",
+        selector: { "app": "spring-boot-app" },
         ports: [{
             name: "http",
-            port: 9090,
-            targetPort: 9090,
+            port: springBootAppPort,
+            targetPort: springBootAppPort,
             nodePort: 32100,
             protocol: "TCP"
         }] }
-    },
-    ingresses: {
-        "MyAppIngress": {
-            annotations: { "nginx.ingress.kubernetes.io/ssl-passthrough": "true",
-                "kubernetes.io/ingress.class": "nginx"
-            },
-            rules: {
-                "sample.com": { host: "sample.com", serviceName: "MyBallerinaAppSvc", servicePort: 9090, path: "/" }
-            }
-        }
     }
 };
 
 public function main(string... args) {
-    io:println(check wso2dev:deploy(ballerinaApp));
+
+    // Deploy mysql app
+    if (<string>wso2dev:deploy(mysqlApp).status == "success") {
+        io:println("Mysql deployed .....");
+        //Wait mysql app to be ready
+        while (<string>wso2dev:getDeployment(mysqlApp.name).status != "ready") {
+            io:println("waiting for mysql deployment to be ready .....");
+            runtime:sleep(1000);
+        }
+        io:println(wso2dev:deploy(springBootApp));
+        io:println("My Spring Boot App deployed !!");
+    }
 }

@@ -13,7 +13,9 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
+import ballerina/io;
+import ballerina/runtime;
+import ballerina/math;
 
 public type FieldValue record {
     string fieldPath;
@@ -59,17 +61,36 @@ public type ConfigMapKeyRef record {
     !...
 };
 
+
+public type DockerSource record{
+    string Dockerfile;
+    string tag;
+    !...
+};
+
+public type ImageSource record{
+    string dockerImage;
+    !...
+};
+
+public type GitSource record{
+    string gitRepo;
+    string tag;
+    !...
+};
+
 public type Deployment record {
     string namespace;
     map labels;
     int replicas;
     string imagePullPolicy;
-    string image;
+    DockerSource|ImageSource|GitSource source;
     ContainerPort[] containerPorts;
     map<string|FieldRef|SecretKeyRef|ResourceFieldRef|ConfigMapKeyRef> env;
     string[] imagePullSecrets;
     PersistentVolumeClaimConfig[] volumeClaims;
     ConfigMap[] configmap;
+    !...
 };
 
 
@@ -91,6 +112,7 @@ public type ServiceType "NodePort"|"ClusterIP"|"LoadBalancer";
 public type ServiceConfiguration record {
     string name;
     map labels;
+    map selector;
     SessionAffinity sessionAffinity;
     ServiceType serviceType;
     Port[] ports;
@@ -173,6 +195,7 @@ public type ContainerPort record{
 };
 
 public function getDeploymentJSON(Application appDefintion) returns (json|error) {
+
     json deployment = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -190,8 +213,8 @@ public function getDeploymentJSON(Application appDefintion) returns (json|error)
                     "containers": [
                         {
                             "name": <json>appDefintion.name,
-                            "image": <json>appDefintion.deployment.image,
-                            "ports": check <json> appDefintion.deployment.containerPorts
+                            "image": check <json>appDefintion.deployment.source,
+                            "ports": check <json>appDefintion.deployment.containerPorts
                         }
                     ]
                 }
@@ -201,6 +224,22 @@ public function getDeploymentJSON(Application appDefintion) returns (json|error)
     return deployment;
 }
 
-public function deploy(Application appDefinition) returns (json|error) {
-    return getDeploymentJSON(appDefinition);
+public function deploy(Application appDefinition) returns (json) {
+    io:println(getDeploymentJSON(appDefinition));
+    json status = {
+        "status": "success"
+    };
+    return status;
+}
+
+public function getDeployment(string deploymentName) returns (json) {
+    int number = math:randomInRange(1, 100);
+    string ready = "ready";
+    if (number > 50) {
+        ready = "Waiting";
+    }
+    json status = {
+        "status": ready
+    };
+    return status;
 }

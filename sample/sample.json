@@ -1,0 +1,41 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "Deployment",
+  "metadata": {
+    "name": "sprintbootapp",
+    "labels": {
+      "language": "Java",
+      "app": "spring-boot-app"
+    }
+  },
+  "spec": {
+    "replicas": 1,
+    "selector": {
+      "matchLabels": {
+        "app": "spring-boot-app"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "language": "Java",
+          "app": "spring-boot-app"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "sprintbootapp",
+            "image": "hello_world_config_map_k8s:latest",
+            "ports": [
+              {
+                "containerPort": 8080,
+                "protocol": "TCP"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -16,6 +16,8 @@
 import ballerina/io;
 import ballerina/runtime;
 import ballerina/math;
+import kubernetes;
+import ballerina/config;
 
 public type FieldValue record {
     string fieldPath;
@@ -190,12 +192,24 @@ public type Port record{
 public type Protocol "TCP"|"UDP";
 
 public type ContainerPort record{
-    int port;
+    int containerPort;
     Protocol protocol;
 };
 
-public function getDeploymentJSON(Application appDefintion) returns (json|error) {
+public function getDeploymentJSON(Application appDefintion) returns (json) {
 
+    string image = "";
+    match appDefintion.deployment.source {
+        DockerSource dockerSource => {
+            image = dockerSource.tag;
+        }
+        ImageSource imageSource => {
+            image = imageSource.dockerImage;
+        }
+        GitSource gitSource => {
+            image = gitSource.tag;
+        }
+    }
     json deployment = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -205,6 +219,9 @@ public function getDeploymentJSON(Application appDefintion) returns (json|error)
         },
         "spec": {
             "replicas": <json>appDefintion.deployment.replicas,
+            "selector": {
+                "matchLabels": check <json>appDefintion.deployment.labels
+            },
             "template": {
                 "metadata": {
                     "labels": check <json>appDefintion.deployment.labels
@@ -213,7 +230,7 @@ public function getDeploymentJSON(Application appDefintion) returns (json|error)
                     "containers": [
                         {
                             "name": <json>appDefintion.name,
-                            "image": check <json>appDefintion.deployment.source,
+                            "image": image,
                             "ports": check <json>appDefintion.deployment.containerPorts
                         }
                     ]
@@ -224,12 +241,20 @@ public function getDeploymentJSON(Application appDefintion) returns (json|error)
     return deployment;
 }
 
+endpoint kubernetes:Client k8sEndpoint {
+    masterURL: "https://127.0.0.1:6443",
+    authConfig: {
+        keystorePath: "/Users/anuruddha/workspace/ballerinax/wso2dev/certs/keystore.p12",
+        keystorePassword: "ballerina"
+    },
+    namespace: "default",
+    trustStorePath: "/Users/anuruddha/workspace/ballerinax/wso2dev/certs/trustore.p12",
+    trustStorePassword: "ballerina"
+};
+
 public function deploy(Application appDefinition) returns (json) {
-    io:println(getDeploymentJSON(appDefinition));
-    json status = {
-        "status": "success"
-    };
-    return status;
+    json j= k8sEndpoint->createDeployment(getDeploymentJSON(appDefinition));
+    return j;
 }
 
 public function getDeployment(string deploymentName) returns (json) {

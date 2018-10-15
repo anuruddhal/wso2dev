@@ -31,6 +31,12 @@ public type SecretKeyValue record {
     !...
 };
 
+public type EnvKeyValue record {
+    string name;
+    string value;
+    !...
+};
+
 public type ResourceFieldValue record {
     string containerName;
     string ^"resource";
@@ -88,7 +94,7 @@ public type Deployment record {
     string imagePullPolicy;
     DockerSource|ImageSource|GitSource source;
     ContainerPort[] containerPorts;
-    map<string|FieldRef|SecretKeyRef|ResourceFieldRef|ConfigMapKeyRef> env;
+    map<EnvKeyValue|FieldRef|SecretKeyRef|ResourceFieldRef|ConfigMapKeyRef|string>[] env;
     string[] imagePullSecrets;
     PersistentVolumeClaimConfig[] volumeClaims;
     ConfigMap[] configmap;
@@ -114,9 +120,10 @@ public type ServiceType "NodePort"|"ClusterIP"|"LoadBalancer";
 public type ServiceConfiguration record {
     string name;
     map labels;
+    map annotations;
     map selector;
     SessionAffinity sessionAffinity;
-    ServiceType serviceType;
+    string serviceType;
     Port[] ports;
 };
 
@@ -195,76 +202,3 @@ public type ContainerPort record{
     int containerPort;
     Protocol protocol;
 };
-
-public function getDeploymentJSON(Application appDefintion) returns (json) {
-
-    string image = "";
-    match appDefintion.deployment.source {
-        DockerSource dockerSource => {
-            image = dockerSource.tag;
-        }
-        ImageSource imageSource => {
-            image = imageSource.dockerImage;
-        }
-        GitSource gitSource => {
-            image = gitSource.tag;
-        }
-    }
-    json deployment = {
-        "apiVersion": "apps/v1",
-        "kind": "Deployment",
-        "metadata": {
-            "name": <json>appDefintion.name,
-            "labels": check <json>appDefintion.deployment.labels
-        },
-        "spec": {
-            "replicas": <json>appDefintion.deployment.replicas,
-            "selector": {
-                "matchLabels": check <json>appDefintion.deployment.labels
-            },
-            "template": {
-                "metadata": {
-                    "labels": check <json>appDefintion.deployment.labels
-                },
-                "spec": {
-                    "containers": [
-                        {
-                            "name": <json>appDefintion.name,
-                            "image": image,
-                            "ports": check <json>appDefintion.deployment.containerPorts
-                        }
-                    ]
-                }
-            }
-        }
-    };
-    return deployment;
-}
-
-endpoint kubernetes:Client k8sEndpoint {
-    masterURL: "https://127.0.0.1:6443",
-    authConfig: {
-        keystorePath: "/Users/anuruddha/workspace/ballerinax/wso2dev/certs/keystore.p12",
-        keystorePassword: "ballerina"
-    },
-    namespace: "default",
-    trustStorePath: "/Users/anuruddha/workspace/ballerinax/wso2dev/certs/trustore.p12",
-    trustStorePassword: "ballerina"
-};
-
-public function deploy(Application appDefinition) returns (json) {
-    json j= k8sEndpoint->createDeployment(getDeploymentJSON(appDefinition));
-    return j;
-}
-
-public function getDeployment(string deploymentName) returns (json) {
-    int number = math:randomInRange(1, 100);
-    string ready = "ready";
-    if (number > 50) {
-        ready = "Waiting";
-    }
-    json status = {
-        "status": ready
-    };
-    return status;
-}

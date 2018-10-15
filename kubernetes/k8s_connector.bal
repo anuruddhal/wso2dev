@@ -13,7 +13,7 @@ public type KubernetesConnector object {
     public function getDeployment(string name) returns json;
     public function deleteDeployment(string name) returns json;
 
-    public function createService(json serviceJSON);
+    public function createService(json serviceJSON) returns json;
     public function getServices() returns json;
     public function getService(string name) returns json;
     public function deleteService(string name) returns json;
@@ -98,16 +98,15 @@ function KubernetesConnector::getDeployment(string name) returns json {
                     return payload;
                 }
                 error err => {
-                    io:println(err);
-                    throw err;
+                    json e = { "error": err.message };
+                    return e;
                 }
             }
         }
         error err => {
-            io:println(err);
-            throw err;
+            json e = { "error": err.message };
+            return e;
         }
-
     }
 }
 
@@ -141,7 +140,6 @@ function KubernetesConnector::createDeployment(json deployment) returns json {
     endpoint http:Client httpClient = self.client;
     string requestPath = "/apis/" + deployment.apiVersion.toString() + "/namespaces/" + self.namespace + "/deployments/"
     ;
-    io:println(requestPath);
     var response = httpClient->post(requestPath, deployment);
     match response {
         http:Response httpResponse => {
@@ -163,7 +161,7 @@ function KubernetesConnector::createDeployment(json deployment) returns json {
     }
 }
 
-function KubernetesConnector::createService(json serviceJSON) {
+function KubernetesConnector::createService(json serviceJSON) returns json {
     endpoint http:Client httpClient = self.client;
     string requestPath = "/api/" + serviceJSON.apiVersion.toString() + "/namespaces/" + self.namespace + "/services/";
     var response = httpClient->post(requestPath, serviceJSON);
@@ -171,11 +169,19 @@ function KubernetesConnector::createService(json serviceJSON) {
         http:Response httpResponse => {
             var jsonPayload = httpResponse.getJsonPayload();
             match jsonPayload {
-                json payload => io:println(payload);
-                error err => io:println(err);
+                json payload => {
+                    return payload;
+                }
+                error err => {
+                    json j = { "error": err.message };
+                    return j;
+                }
             }
         }
-        error err => io:println(err);
+        error err => {
+            json j1 = { "error": err.message };
+            return j1;
+        }
     }
 }
 

@@ -34,5 +34,4 @@ target/
 
 #ballerina
 *.balx
-*ballerina.conf
 certs/

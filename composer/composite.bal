@@ -5,14 +5,33 @@ import wso2dev;
 public function main(string... args) {
     developer:springBootApp.deployment.namespace = "wso2";
     developer:springBootApp.deployment.replicas = 3;
-    developer:springBootApp.services["MyBallerinaAppSvc"].serviceType = "ClusterIP";
+    developer:springBootApp.services["myspringappsvc"].serviceType = "ClusterIP";
+    developer:springBootApp.services["myspringappsvc"].ports = [{
+        name: "http",
+        port: developer:springBootAppPort,
+        targetPort: developer:springBootAppPort,
+        protocol: "TCP"
+    }];
     developer:springBootApp.ingresses = {
-        "MyAppIngress": {
-            annotations: { "nginx.ingress.kubernetes.io/ssl-passthrough": "true",
+        "spring-app": {
+            annotations: {
+                "nginx.ingress.kubernetes.io/ssl-passthrough": "true",
                 "kubernetes.io/ingress.class": "nginx"
             },
-            rules: {
-                "sample.com": { host: "sample.com", serviceName: "MyBallerinaAppSvc", servicePort: 9090, path: "/" }
+            spec: {
+                rules: [{
+                    host: "myapp.com",
+                    http: {
+                        paths: [{
+                            backend: {
+                                serviceName: "myspringappsvc",
+                                servicePort: developer:springBootAppPort
+                            },
+                            path: "/"
+                        }
+                        ]
+                    }
+                }]
             }
         }
     };

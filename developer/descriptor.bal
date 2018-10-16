@@ -58,17 +58,42 @@ public wso2dev:Application springBootApp = {
             nodePort: 32100,
             protocol: "TCP"
         }] }
+    },
+    ingresses: {
+        "spring-app": {
+            annotations: {
+                "nginx.ingress.kubernetes.io/ssl-passthrough": "true",
+                "kubernetes.io/ingress.class": "nginx"
+            },
+            spec: {
+                rules: [{
+                    host: "myapp.com",
+                    http: {
+                        paths: [{
+                            backend: {
+                                serviceName: "myspringappsvc",
+                                servicePort: springBootAppPort
+                            },
+                            path: "/"
+                        }
+                        ]
+                    }
+                }]
+            }
+        }
     }
 };
 
 public function main(string... args) {
+    io:println("Deploying mysql");
     var v = wso2dev:deploy(mysqlApp);
     json dep = wso2dev:getDeployment(mysqlApp.name);
     while (dep.status.readyReplicas == null || check <int>dep.status.readyReplicas < 1) {
-        io:println("waiting for mysql service ....");
+        io:println("Waiting for mysql service to be read");
         runtime:sleep(1000);
         dep = wso2dev:getDeployment(mysqlApp.name);
     }
+    io:println("Deploying spring-boot app");
     var v2 = wso2dev:deploy(springBootApp);
-    io:println("exit....");
+
 }

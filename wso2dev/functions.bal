@@ -13,6 +13,7 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+import ballerina/log;
 import ballerina/io;
 import ballerina/runtime;
 import ballerina/math;
@@ -61,7 +62,6 @@ public function getDeploymentJSON(Application appDefinition) returns (json) {
             }
         }
     };
-    io:println(deployment);
     return deployment;
 }
 
@@ -93,6 +93,27 @@ public function getServiceJSON(Application appDefinition) returns (json[]) {
 
 }
 
+public function getIngressJSON(Application appDefinition) returns (json[]) {
+    json[] ingressJSON = [];
+    map<IngressConfiguration> ingresses = appDefinition.ingresses;
+    foreach ingressKey, ingressDef in ingresses {
+        json ingerssJSON = {
+            "apiVersion": "extensions/v1beta1",
+            "kind": "Ingress",
+            "metadata": {
+                "annotations": check <json>ingressDef.annotations,
+                "finalizers": [],
+                "labels": check <json>ingressDef.labels,
+                "name": <json>ingressKey,
+                "ownerReferences": []
+            },
+            "spec": check <json>ingressDef.spec
+        };
+        ingressJSON[lengthof ingressJSON] = ingerssJSON;
+    }
+    return ingressJSON;
+}
+
 endpoint kubernetes:Client k8sEndpoint {
     masterURL: config:getAsString("dockerForMac.masterURL"),
     authConfig: {
@@ -107,18 +128,43 @@ endpoint kubernetes:Client k8sEndpoint {
 public function deploy(Application appDefinition) returns (json) {
     json deployment = getDeploymentJSON(appDefinition);
     json[] k8sServices = getServiceJSON(appDefinition);
-    json[] serviceStatuses;
+    json[] ingressServices = getIngressJSON(appDefinition);
+    log:printInfo("Deploying kubernetes artifacts");
 
+    //Deploy services
+    json[] serviceStatuses;
     foreach k8sService in k8sServices {
         serviceStatuses[lengthof serviceStatuses] = k8sEndpoint->createService(k8sService);
+        log:printInfo("Service \"" + k8sService.metadata.name.toString() + "\" created.");
+        vaildateResource(serviceStatuses[lengthof serviceStatuses - 1]);
     }
+
+    //Deploy ingress
+    json[] ingressStatuses;
+    foreach ingressService in ingressServices {
+        ingressStatuses[lengthof ingressStatuses] = k8sEndpoint->createIngress(ingressService);
+        log:printInfo("Ingress \"" + ingressService.metadata.name.toString() + "\" created.");
+        vaildateResource(ingressStatuses[lengthof ingressStatuses - 1]);
+    }
+
+    //Deploy deployment
     json deploymentStatus = k8sEndpoint->createDeployment(deployment);
+    log:printInfo("Deployment \"" + deployment.metadata.name.toString() + "\" created.");
+    vaildateResource(deploymentStatus);
 
     json result = {
         "deploymentStatus": deploymentStatus,
-        "serivceStatus": serviceStatuses
+        "serivceStatus": serviceStatuses,
+        "ingressStatus": ingressStatuses
     };
     return result;
+}
+
+public function vaildateResource(json status) {
+    if ("Status" == <string>status.kind) {
+        //Error while deploying artifacts.
+        log:printError(status.toString());
+    }
 }
 
 public function getDeployment(string deploymentName) returns (json) {

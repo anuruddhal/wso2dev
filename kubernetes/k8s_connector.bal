@@ -18,7 +18,7 @@ public type KubernetesConnector object {
     public function getService(string name) returns json;
     public function deleteService(string name) returns json;
 
-    public function createIngress(json ingressJSON);
+    public function createIngress(json ingressJSON) returns json;
     public function getIngress(string name) returns json;
     public function getIngresses() returns json;
     public function deleteIngress(string name) returns json;
@@ -263,7 +263,7 @@ function KubernetesConnector::deleteService(string name) returns json {
     }
 }
 
-function KubernetesConnector::createIngress(json ingressJSON) {
+function KubernetesConnector::createIngress(json ingressJSON) returns json {
     endpoint http:Client httpClient = self.client;
     string requestPath = "/apis/" + ingressJSON.apiVersion.toString() + "/namespaces/" + self.namespace + "/ingresses/";
 
@@ -272,11 +272,20 @@ function KubernetesConnector::createIngress(json ingressJSON) {
         http:Response httpResponse => {
             var jsonPayload = httpResponse.getJsonPayload();
             match jsonPayload {
-                json payload => io:println(payload);
-                error err => io:println(err);
+                json payload => {
+                    return payload;
+                }
+                error err => {
+                    io:println(err);
+                    throw err;
+                }
             }
         }
-        error err => io:println(err);
+        error err => {
+            io:println(err);
+            throw err;
+        }
+
     }
 }
 

@@ -125,6 +125,7 @@ public type ServiceConfiguration record {
     SessionAffinity sessionAffinity;
     string serviceType;
     Port[] ports;
+    !...
 };
 
 
@@ -132,15 +133,44 @@ public type IngressConfiguration record {
     string name;
     map labels;
     map annotations;
-    map<IngressRule> rules;
+    IngressSpec spec;
+    !...
 };
 
-public type IngressRule record {
+public type IngressSpec record {
+    IngressRule[] rules;
+    IngressTLS? tls;
+    !...
+};
+
+public type IngressRule record{
+    string host;
+    IngressHttp http;
+    !...
+};
+
+public type IngressHttp record{
+    IngressPath[] paths;
+    !...
+};
+
+public type IngressPath record{
+    string path;
+    IngressBackend backend;
+    !...
+};
+
+public type IngressBackend record{
     string serviceName;
     int servicePort;
-    string path;
-    string hostname;
+    !...
 };
+
+public type IngressTLS record{
+    string[] hosts;
+    !...
+};
+
 
 public type PodAutoscalerConfig record {
     string name;
@@ -148,12 +178,14 @@ public type PodAutoscalerConfig record {
     int minReplicas;
     int maxReplicas;
     int cpuPercentage;
+    !...
 };
 
 public type Secret record {
     string name;
     string mountPath;
     boolean readOnly;
+    !...
 };
 
 public type ConfigMap record {
@@ -161,12 +193,14 @@ public type ConfigMap record {
     map labels;
     map annotations;
     map data;
+    !...
 };
 
 public type ConfigMapMount record {
     string name;
     string mountPath;
     boolean readOnly;
+    !...
 };
 
 public type PersistentVolumeClaimConfig record {
@@ -176,6 +210,7 @@ public type PersistentVolumeClaimConfig record {
     string volumeClaimSize;
     map annotations;
     boolean readOnly;
+    !...
 };
 
 public type Application record{
@@ -191,6 +226,7 @@ public type Port record{
     int targetPort;
     string protocol;
     int? nodePort;
+    !...
 };
 
 @final public Protocol TCP = "TCP";

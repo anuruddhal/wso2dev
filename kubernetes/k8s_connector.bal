@@ -292,7 +292,6 @@ function KubernetesConnector::createIngress(json ingressJSON) returns json {
 function KubernetesConnector::getIngress(string name) returns json {
     endpoint http:Client httpClient = self.client;
     string requestPath = "/apis/extensions/v1beta1/namespaces/" + self.namespace + "/ingresses/" + name;
-    io:println(requestPath);
 
     var response = httpClient->get(requestPath);
     match response {
@@ -319,7 +318,6 @@ function KubernetesConnector::getIngress(string name) returns json {
 function KubernetesConnector::deleteIngress(string name) returns json {
     endpoint http:Client httpClient = self.client;
     string requestPath = "/apis/extensions/v1beta1/namespaces/" + self.namespace + "/ingresses/" + name;
-    io:println(requestPath);
 
     var response = httpClient->delete(requestPath, "");
     match response {

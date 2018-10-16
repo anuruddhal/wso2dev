@@ -89,11 +89,16 @@ public function main(string... args) {
     var v = wso2dev:deploy(mysqlApp);
     json dep = wso2dev:getDeployment(mysqlApp.name);
     while (dep.status.readyReplicas == null || check <int>dep.status.readyReplicas < 1) {
-        io:println("Waiting for mysql service to be read");
+        io:println("Waiting for mysql service to be ready");
         runtime:sleep(1000);
         dep = wso2dev:getDeployment(mysqlApp.name);
     }
     io:println("Deploying spring-boot app");
     var v2 = wso2dev:deploy(springBootApp);
+
+    io:println("Undeploying app");
+    var v3 = wso2dev:undeploy(springBootApp);
+    var v4 = wso2dev:undeploy(mysqlApp);
+
 
 }

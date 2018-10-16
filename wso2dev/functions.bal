@@ -160,6 +160,38 @@ public function deploy(Application appDefinition) returns (json) {
     return result;
 }
 
+public function undeploy(Application appDefinition) returns (json) {
+    json deployment = getDeploymentJSON(appDefinition);
+    json[] k8sServices = getServiceJSON(appDefinition);
+    json[] ingressServices = getIngressJSON(appDefinition);
+    log:printInfo("Deploying kubernetes artifacts");
+
+    //Deploy services
+    json[] serviceStatuses;
+    foreach k8sService in k8sServices {
+        serviceStatuses[lengthof serviceStatuses] = k8sEndpoint->deleteService(k8sService.metadata.name.toString());
+        log:printInfo("Service \"" + k8sService.metadata.name.toString() + "\" deleted.");
+    }
+
+    //Deploy ingress
+    json[] ingressStatuses;
+    foreach ingressService in ingressServices {
+        ingressStatuses[lengthof ingressStatuses] = k8sEndpoint->deleteIngress(ingressService.metadata.name.toString());
+        log:printInfo("Ingress \"" + ingressService.metadata.name.toString() + "\" deleted.");
+    }
+
+    //Deploy deployment
+    json deploymentStatus = k8sEndpoint->deleteDeployment(deployment.metadata.name.toString());
+    log:printInfo("Deployment \"" + deployment.metadata.name.toString() + "\" deleted.");
+
+    json result = {
+        "deploymentStatus": deploymentStatus,
+        "serivceStatus": serviceStatuses,
+        "ingressStatus": ingressStatuses
+    };
+    return result;
+}
+
 public function vaildateResource(json status) {
     if ("Status" == <string>status.kind) {
         //Error while deploying artifacts.

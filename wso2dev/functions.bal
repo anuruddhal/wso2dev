@@ -17,12 +17,12 @@ import ballerina/log;
 import ballerina/io;
 import ballerina/runtime;
 import ballerina/math;
-import kubernetes;
+import wso2/kubernetes;
 import ballerina/config;
 
 public function getDeploymentJSON(Application appDefinition) returns (json) {
     string image;
-    match appDefinition.deployment.source {
+    match appDefinition.source {
         DockerSource dockerSource => {
             image = dockerSource.tag;
         }

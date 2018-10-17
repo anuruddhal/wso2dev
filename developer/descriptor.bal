@@ -1,24 +1,29 @@
-import wso2dev;
+import wso2/wso2dev;
 import ballerina/io;
 import ballerina/config;
 import ballerina/runtime;
+import wso2/composite;
 
-//@composite:Docker {}
 
 @final public string mysqlHostname = "mysql-jdbc.com";
 @final public int springBootAppPort = 8080;
+@final public int mysqlPort = 3306;
+@final public int springBootNodePort = 32100;
 
+@composite:App {
+    name: "spring-boot"
+}
 public wso2dev:Application mysqlApp = {
     name: "mysql",
+    source: {
+        dockerImage: "mysql:5.7"
+    },
     deployment: {
         namespace: "default",
         labels: { "app": "mysql" },
         replicas: 1,
         imagePullPolicy: "IfNotPresent",
-        source: {
-            dockerImage: "mysql:5.7"
-        },
-        containerPorts: [{ containerPort: 3306, protocol: "TCP" }],
+        containerPorts: [{ containerPort: mysqlPort, protocol: "TCP" }],
         env: [{ name: "MYSQL_ROOT_PASSWORD", value: config:getAsString("mysql.password") }, { name: "MYSQL_DB", value:
         "test" }]
     },
@@ -27,8 +32,8 @@ public wso2dev:Application mysqlApp = {
         serviceType: "ClusterIP",
         ports: [{
             name: "jdbc-port",
-            port: 3306,
-            targetPort: 3306,
+            port: mysqlPort,
+            targetPort: mysqlPort,
             protocol: "TCP"
         }] }
     }
@@ -37,14 +42,14 @@ public wso2dev:Application mysqlApp = {
 
 public wso2dev:Application springBootApp = {
     name: "sprintbootapp",
+    source: {
+        dockerImage: "anuruddhal/helloworld:v1"
+    },
     deployment: {
         namespace: "default",
         labels: { "language": "Java", "app": "spring-boot-app" },
         replicas: 1,
         imagePullPolicy: "IfNotPresent",
-        source: {
-            dockerImage: "anuruddhal/helloworld:v1"
-        },
         containerPorts: [{ containerPort: springBootAppPort, protocol: "TCP" }],
         env: [{ name: "MYSQL_HOST", value: mysqlHostname }]
     },
@@ -55,7 +60,7 @@ public wso2dev:Application springBootApp = {
             name: "http",
             port: springBootAppPort,
             targetPort: springBootAppPort,
-            nodePort: 32100,
+            nodePort: springBootNodePort,
             protocol: "TCP"
         }] }
     },
@@ -99,6 +104,4 @@ public function main(string... args) {
     io:println("Undeploying app");
     var v3 = wso2dev:undeploy(springBootApp);
     var v4 = wso2dev:undeploy(mysqlApp);
-
-
 }

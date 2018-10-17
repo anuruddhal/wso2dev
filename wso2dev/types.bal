@@ -16,7 +16,7 @@
 import ballerina/io;
 import ballerina/runtime;
 import ballerina/math;
-import kubernetes;
+import wso2/kubernetes;
 import ballerina/config;
 
 public type FieldValue record {
@@ -92,7 +92,6 @@ public type Deployment record {
     map labels;
     int replicas;
     string imagePullPolicy;
-    DockerSource|ImageSource|GitSource source;
     ContainerPort[] containerPorts;
     map<EnvKeyValue|FieldRef|SecretKeyRef|ResourceFieldRef|ConfigMapKeyRef|string>[] env;
     string[] imagePullSecrets;
@@ -215,6 +214,7 @@ public type PersistentVolumeClaimConfig record {
 
 public type Application record{
     string name;
+    DockerSource|ImageSource|GitSource source;
     Deployment deployment;
     map<ServiceConfiguration> services;
     map<IngressConfiguration> ingresses;

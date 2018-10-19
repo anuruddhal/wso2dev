@@ -121,8 +121,8 @@ endpoint kubernetes:Client k8sEndpoint {
         keystorePassword: config:getAsString("dockerForMac.sslkeyStorePassword")
     },
     namespace: "default",
-    trustStorePath: config:getAsString("dockerForMac.trustStorePath"),
-    trustStorePassword: config:getAsString("dockerForMac.trustStorePassword")
+    trustStorePath: config:getAsString("trustStorePath"),
+    trustStorePassword: config:getAsString("trustStorePassword")
 };
 
 public function deploy(Application appDefinition) returns (json) {

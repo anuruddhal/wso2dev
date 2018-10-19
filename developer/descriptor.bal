@@ -10,9 +10,6 @@ import wso2/composite;
 @final public int mysqlPort = 3306;
 @final public int springBootNodePort = 32100;
 
-@composite:App {
-    name: "spring-boot"
-}
 public wso2dev:Application mysqlApp = {
     name: "mysql",
     source: {
@@ -40,6 +37,7 @@ public wso2dev:Application mysqlApp = {
 };
 
 
+@composite:App {}
 public wso2dev:Application springBootApp = {
     name: "sprintbootapp",
     source: {

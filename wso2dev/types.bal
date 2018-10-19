@@ -214,6 +214,8 @@ public type PersistentVolumeClaimConfig record {
 
 public type Application record{
     string name;
+    string ^"version";
+    int[] ports;
     DockerSource|ImageSource|GitSource source;
     Deployment deployment;
     map<ServiceConfiguration> services;

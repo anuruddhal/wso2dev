@@ -34,4 +34,4 @@ target/
 
 #ballerina
 *.balx
-resource/
+resource/certs

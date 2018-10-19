@@ -2,7 +2,6 @@ import wso2/wso2dev;
 import ballerina/io;
 import ballerina/config;
 import ballerina/runtime;
-import wso2/composite;
 
 
 @final public string mysqlHostname = "mysql-jdbc.com";
@@ -37,7 +36,6 @@ public wso2dev:Application mysqlApp = {
 };
 
 
-@composite:App {}
 public wso2dev:Application springBootApp = {
     name: "sprintbootapp",
     source: {

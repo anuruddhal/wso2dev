@@ -136,6 +136,7 @@ public function deploy(Application appDefinition) returns (json) {
     foreach k8sService in k8sServices {
         serviceStatuses[lengthof serviceStatuses] = k8sEndpoint->createService(k8sService);
         log:printInfo("Service \"" + k8sService.metadata.name.toString() + "\" created.");
+        writeJSON(k8sService, k8sService.metadata.name.toString() + ".json");
         vaildateResource(serviceStatuses[lengthof serviceStatuses - 1]);
     }
 
@@ -144,11 +145,13 @@ public function deploy(Application appDefinition) returns (json) {
     foreach ingressService in ingressServices {
         ingressStatuses[lengthof ingressStatuses] = k8sEndpoint->createIngress(ingressService);
         log:printInfo("Ingress \"" + ingressService.metadata.name.toString() + "\" created.");
+        writeJSON(ingressService, ingressService.metadata.name.toString() + ".json");
         vaildateResource(ingressStatuses[lengthof ingressStatuses - 1]);
     }
 
     //Deploy deployment
     json deploymentStatus = k8sEndpoint->createDeployment(deployment);
+    writeJSON(deployment, deployment.metadata.name.toString() + ".json");
     log:printInfo("Deployment \"" + deployment.metadata.name.toString() + "\" created.");
     vaildateResource(deploymentStatus);
 
@@ -202,4 +205,30 @@ public function vaildateResource(json status) {
 public function getDeployment(string deploymentName) returns (json) {
     json deployment = k8sEndpoint->getDeployment(deploymentName);
     return deployment;
+}
+
+function close(io:CharacterChannel characterChannel) {
+    characterChannel.close() but {
+        error e =>
+        log:printError("Error occurred while closing character stream",
+            err = e)
+    };
+}
+
+function writeJSON(json content, string fileName) {
+    string path = "./target/kubernetes/" + fileName;
+    io:ByteChannel byteChannel = io:openFile(path, io:WRITE);
+
+    io:CharacterChannel ch = new io:CharacterChannel(byteChannel, "UTF8");
+
+    match ch.writeJson(content) {
+        error err => {
+            close(ch);
+            throw err;
+        }
+        () => {
+            close(ch);
+            log:printDebug("Content written successfully");
+        }
+    }
 }
